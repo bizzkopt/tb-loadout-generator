@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tower Battles Meta Generator</title>
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --card-bg: #1e293b;
+            --primary-purple: #6366f1;
+            --text-main: #f8fafc;
+            --text-dim: #94a3b8;
+            /* Slot Borders */
+            --border-slot1: #22c55e;
+            --border-slot2: #0ea5e9;
+            --border-slot3: #f59e0b;
+            --border-slot4: #a855f7;
+            --border-slot5: #64748b;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 40px 20px;
+            margin: 0;
+        }
+
+        .loadout-container {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 35px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .slot {
+            background: var(--card-bg);
+            width: 155px;
+            height: 80px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            border: 2px solid transparent;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            font-size: 1.15rem;
+            text-align: center;
+        }
+
+        .slot-1 { border-color: var(--border-slot1); }
+        .slot-2 { border-color: var(--border-slot2); }
+        .slot-3 { border-color: var(--border-slot3); }
+        .slot-4 { border-color: var(--border-slot4); }
+        .slot-5 { border-color: var(--border-slot5); }
+
+        .gen-btn {
+            background-color: var(--primary-purple);
+            color: white;
+            border: none;
+            padding: 16px 50px;
+            border-radius: 50px;
+            font-size: 1.1rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s;
+            box-shadow: 0 10px 15px -3px rgba(99, 102, 241, 0.3);
+            margin-bottom: 45px;
+        }
+
+        .gen-btn:hover { background-color: #4f46e5; transform: translateY(-2px); }
+        .gen-btn:active { transform: translateY(0); }
+
+        .ban-section {
+            background: var(--card-bg);
+            padding: 30px;
+            border-radius: 20px;
+            width: 100%;
+            max-width: 950px;
+            border: 1px solid #334155;
+        }
+
+        .tower-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(135px, 1fr));
+            gap: 10px;
+        }
+
+        .tower-item {
+            background: #334155;
+            border: 1px solid transparent;
+            padding: 12px;
+            border-radius: 8px;
+            color: var(--text-main);
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: 0.2s;
+            text-align: center;
+        }
+
+        .tower-item:hover { background: #475569; }
+
+        .tower-item.banned {
+            background: #0f172a;
+            color: #64748b;
+            text-decoration: line-through;
+            border-color: #1e293b;
+            opacity: 0.5;
+        }
+
+        h1 span { font-weight: 300; opacity: 0.8; }
+    </style>
+</head>
+<body>
+
+    <h1>Tower Battles <span>Loadout</span></h1>
+
+    <div class="loadout-container">
+        <div id="s1" class="slot slot-1">Farm</div>
+        <div id="s2" class="slot slot-2">DJ</div>
+        <div id="s3" class="slot slot-3">Aviator</div>
+        <div id="s4" class="slot slot-4">Phaser</div>
+        <div id="s5" class="slot slot-5">Marksman</div>
+    </div>
+
+    <button class="gen-btn" onclick="generate()">Generate New Loadout</button>
+
+    <div class="ban-section">
+        <h2 style="margin-top:0; font-size: 1.2rem; color: var(--text-dim);">Ban List</h2>
+        <div class="tower-grid" id="towerGrid"></div>
+    </div>
+
+    <script>
+        const allTowers = [
+            "DJ", "Commander", "Aviator", "Phaser", "Marksman", "Anarchist", "Tweeter", 
+            "Plasma Trooper", "Mercenary", "Mortar", "Barracks", "Patrol", "Commando", 
+            "Cryo-Gunner", "Railgunner", "Enforcer", "Shotgunner", "Soldier", "Fragger", 
+            "Flamethrower", "Golden Scout", "Golden Commando", "Hallowboomer", "Tuber", 
+            "Zed", "Graveyard", "Farm"
+        ];
+
+        const egList = ["Fragger", "Shotgunner", "Soldier", "Tuber", "Mortar", "Enforcer", "Aviator", "Mercenary", "Anarchist", "Plasma Trooper", "Hallowboomer", "Tweeter", "Golden Scout"];
+        const hiddenList = ["Fragger", "Soldier", "Tuber", "Mortar", "Patrol", "Enforcer", "Barracks", "Aviator", "Mercenary", "Marksman", "Commando", "Plasma Trooper", "Graveyard", "Phaser", "Golden Scout", "Golden Commando"];
+        const fallbackSupport = ["Cryo-Gunner", "Flamethrower", "Hallowboomer"];
+
+        let banned = new Set();
+
+        const grid = document.getElementById('towerGrid');
+        allTowers.forEach(t => {
+            const btn = document.createElement('button');
+            btn.className = 'tower-item';
+            btn.textContent = t;
+            btn.onclick = () => {
+                if (!banned.has(t)) {
+                    if ((t === "Farm" && banned.has("Tweeter")) || (t === "Tweeter" && banned.has("Farm"))) {
+                        return; // Silent prevent
+                    }
+                    banned.add(t);
+                    btn.classList.add('banned');
+                } else {
+                    banned.delete(t);
+                    btn.classList.remove('banned');
+                }
+            };
+            grid.appendChild(btn);
+        });
+
+        function getRandom(arr, used) {
+            const available = arr.filter(t => !banned.has(t) && !used.has(t));
+            return available.length > 0 ? available[Math.floor(Math.random() * available.length)] : "None";
+        }
+
+        function generate() {
+            let used = new Set();
+            
+            // Slot 1: Farm or Tweeter Force
+            const s1 = document.getElementById('s1');
+            if (banned.has("Farm")) {
+                s1.textContent = "Tweeter";
+                used.add("Tweeter");
+            } else {
+                s1.textContent = "Farm";
+                used.add("Farm");
+            }
+
+            // Slot 2: Support Logic
+            let s2Pool = ["DJ", "Commander"].filter(t => !banned.has(t));
+            if (s2Pool.length === 0) s2Pool = fallbackSupport.filter(t => !banned.has(t));
+            const s2Pick = getRandom(s2Pool, used);
+            document.getElementById('s2').textContent = s2Pick;
+            used.add(s2Pick);
+
+            // Slot 3: Early Game Logic
+            const s3Pick = getRandom(egList, used);
+            document.getElementById('s3').textContent = s3Pick;
+            used.add(s3Pick);
+
+            // Slot 4: Hidden Logic
+            const s4Pick = getRandom(hiddenList, used);
+            document.getElementById('s4').textContent = s4Pick;
+            used.add(s4Pick);
+
+            // Slot 5: Random Wildcard
+            const s5Pick = getRandom(allTowers, used);
+            document.getElementById('s5').textContent = s5Pick;
+        }
+    </script>
+</body>
+</html>
