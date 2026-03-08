@@ -11,7 +11,6 @@
             --primary-purple: #6366f1;
             --text-main: #f8fafc;
             --text-dim: #94a3b8;
-            /* Slot Borders */
             --border-slot1: #22c55e;
             --border-slot2: #0ea5e9;
             --border-slot3: #f59e0b;
@@ -144,9 +143,10 @@
             "Zed", "Graveyard", "Farm"
         ];
 
-        const egList = ["Fragger", "Shotgunner", "Soldier", "Tuber", "Mortar", "Enforcer", "Aviator", "Mercenary", "Anarchist", "Plasma Trooper", "Hallowboomer", "Tweeter", "Golden Scout"];
+        // Anarchist removed from egList and added to fallbackSupport
+        const egList = ["Fragger", "Shotgunner", "Soldier", "Tuber", "Mortar", "Enforcer", "Aviator", "Mercenary", "Plasma Trooper", "Hallowboomer", "Tweeter", "Golden Scout"];
         const hiddenList = ["Fragger", "Soldier", "Tuber", "Mortar", "Patrol", "Enforcer", "Barracks", "Aviator", "Mercenary", "Marksman", "Commando", "Plasma Trooper", "Graveyard", "Phaser", "Golden Scout", "Golden Commando"];
-        const fallbackSupport = ["Cryo-Gunner", "Flamethrower", "Hallowboomer"];
+        const fallbackSupport = ["Cryo-Gunner", "Flamethrower", "Hallowboomer", "Anarchist"];
 
         let banned = new Set();
 
@@ -158,7 +158,7 @@
             btn.onclick = () => {
                 if (!banned.has(t)) {
                     if ((t === "Farm" && banned.has("Tweeter")) || (t === "Tweeter" && banned.has("Farm"))) {
-                        return; // Silent prevent
+                        return;
                     }
                     banned.add(t);
                     btn.classList.add('banned');
@@ -178,7 +178,7 @@
         function generate() {
             let used = new Set();
             
-            // Slot 1: Farm or Tweeter Force
+            // Slot 1: Econ
             const s1 = document.getElementById('s1');
             if (banned.has("Farm")) {
                 s1.textContent = "Tweeter";
@@ -188,24 +188,24 @@
                 used.add("Farm");
             }
 
-            // Slot 2: Support Logic
+            // Slot 2: Support (DJ/Commander or Fallbacks including Anarchist)
             let s2Pool = ["DJ", "Commander"].filter(t => !banned.has(t));
             if (s2Pool.length === 0) s2Pool = fallbackSupport.filter(t => !banned.has(t));
             const s2Pick = getRandom(s2Pool, used);
             document.getElementById('s2').textContent = s2Pick;
             used.add(s2Pick);
 
-            // Slot 3: Early Game Logic
+            // Slot 3: Early Game
             const s3Pick = getRandom(egList, used);
             document.getElementById('s3').textContent = s3Pick;
             used.add(s3Pick);
 
-            // Slot 4: Hidden Logic
+            // Slot 4: Hidden
             const s4Pick = getRandom(hiddenList, used);
             document.getElementById('s4').textContent = s4Pick;
             used.add(s4Pick);
 
-            // Slot 5: Random Wildcard
+            // Slot 5: Random
             const s5Pick = getRandom(allTowers, used);
             document.getElementById('s5').textContent = s5Pick;
         }
