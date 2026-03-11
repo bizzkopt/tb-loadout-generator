@@ -40,14 +40,17 @@
             display: flex;
             align-items: center;
             background: var(--card-bg);
-            padding: 10px 20px;
+            padding: 12px 24px;
             border-radius: 30px;
             border: 1px solid #334155;
             cursor: pointer;
             user-select: none;
+            transition: 0.2s;
+            font-weight: 600;
         }
 
-        .toggle-container input { margin-right: 10px; cursor: pointer; }
+        .toggle-container:hover { border-color: var(--primary-purple); background: #243146; }
+        .toggle-container input { margin-right: 12px; transform: scale(1.2); cursor: pointer; }
 
         .loadout-container {
             display: flex;
@@ -69,6 +72,7 @@
             border: 2px solid transparent;
             font-size: 1.1rem;
             text-align: center;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
         }
 
         .slot-1 { border-color: var(--border-slot1); }
@@ -87,7 +91,7 @@
             font-weight: 700;
             cursor: pointer;
             transition: 0.2s;
-            box-shadow: 0 10px 15px -3px rgba(99, 102, 241, 0.3);
+            box-shadow: 0 10px 20px -5px rgba(99, 102, 241, 0.4);
             margin-bottom: 45px;
         }
 
@@ -115,16 +119,19 @@
             border-radius: 8px;
             color: var(--text-main);
             cursor: pointer;
-            font-size: 0.9rem;
+            font-size: 0.85rem;
             text-align: center;
+            transition: 0.15s;
         }
 
         .tower-item.banned {
             background: #0f172a;
-            color: #64748b;
+            color: #475569;
             text-decoration: line-through;
             opacity: 0.5;
         }
+
+        h1 span { font-weight: 300; opacity: 0.7; }
     </style>
 </head>
 <body>
@@ -142,13 +149,13 @@
         <div id="s2" class="slot slot-2">DJ</div>
         <div id="s3" class="slot slot-3">Soldier</div>
         <div id="s4" class="slot slot-4">Mortar</div>
-        <div id="s5" class="slot slot-5">Railgunner</div>
+        <div id="s5" class="slot slot-5">Phaser</div>
     </div>
 
     <button class="gen-btn" onclick="generate()">Generate Loadout</button>
 
     <div class="ban-section">
-        <h2 style="margin-top:0; font-size: 1.2rem; color: var(--text-dim);">Ban List</h2>
+        <h2 style="margin-top:0; font-size: 0.9rem; color: var(--text-dim); text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 20px;">Ban List</h2>
         <div class="tower-grid" id="towerGrid"></div>
     </div>
 
@@ -162,14 +169,15 @@
         ];
 
         const egList = ["Fragger", "Shotgunner", "Soldier", "Tuber", "Mortar", "Enforcer", "Aviator", "Mercenary", "Plasma Trooper", "Hallowboomer", "Tweeter", "Golden Scout"];
-        const fallbackSupport = ["Cryo-Gunner", "Flamethrower", "Hallowboomer", "Anarchist"];
-        
+        const hiddenList = ["Fragger", "Soldier", "Tuber", "Mortar", "Patrol", "Enforcer", "Barracks", "Aviator", "Mercenary", "Marksman", "Commando", "Plasma Trooper", "Graveyard", "Phaser", "Golden Scout", "Golden Commando"];
         const singleDpsList = ["Marksman", "Tweeter", "Mercenary", "Commando", "Enforcer", "Shotgunner", "Soldier", "Golden Scout", "Patrol", "Barracks"];
         const ccList = ["Fragger", "Shotgunner", "Tuber", "Enforcer", "Mortar", "Aviator", "Plasma Trooper", "Hallowboomer", "Patrol"];
+        const fallbackSupport = ["Cryo-Gunner", "Flamethrower", "Hallowboomer", "Anarchist"];
 
         let banned = new Set();
 
         const grid = document.getElementById('towerGrid');
+        // Removed .sort() to keep the original list order
         allTowers.forEach(t => {
             const btn = document.createElement('button');
             btn.className = 'tower-item';
@@ -177,11 +185,9 @@
             btn.onclick = () => {
                 if (!banned.has(t)) {
                     if ((t === "Farm" && banned.has("Tweeter")) || (t === "Tweeter" && banned.has("Farm"))) return;
-                    banned.add(t);
-                    btn.classList.add('banned');
+                    banned.add(t); btn.classList.add('banned');
                 } else {
-                    banned.delete(t);
-                    btn.classList.remove('banned');
+                    banned.delete(t); btn.classList.remove('banned');
                 }
             };
             grid.appendChild(btn);
@@ -196,39 +202,55 @@
             let used = new Set();
             const isForceMode = document.getElementById('forceMode').checked;
             
+            const hasCC = (val) => ccList.includes(val);
+            const hasDPS = (val) => singleDpsList.includes(val);
+            const hasHidden = (val) => hiddenList.includes(val);
+
             // Slot 1: Econ
             const s1Val = banned.has("Farm") ? "Tweeter" : "Farm";
             document.getElementById('s1').textContent = s1Val;
             used.add(s1Val);
 
-            // Slot 2: Support
+            // Slot 2: Support (Mutual Exclusion)
             let s2Pool = ["DJ", "Commander"].filter(t => !banned.has(t));
             if (s2Pool.length === 0) s2Pool = fallbackSupport;
-            const s2Val = getRandom(s2Pool, used);
-            document.getElementById('s2').textContent = s2Val;
-            used.add(s2Val);
+            const s2Pick = getRandom(s2Pool, used);
+            document.getElementById('s2').textContent = s2Pick;
+            used.add(s2Pick);
+            if (s2Pick === "DJ") used.add("Commander");
+            if (s2Pick === "Commander") used.add("DJ");
 
-            // Slot 3: Early Game
+            // Slot 3: EG
             const s3Val = getRandom(egList, used);
             document.getElementById('s3').textContent = s3Val;
             used.add(s3Val);
 
-            // Slot 4: CC Logic
+            // Slot 4: Meta
             let s4Val;
-            if (isForceMode && !ccList.includes(s3Val)) {
-                s4Val = getRandom(ccList, used);
+            if (isForceMode) {
+                if (!hasCC(s3Val)) s4Val = getRandom(ccList, used);
+                else if (!hasHidden(s3Val)) s4Val = getRandom(hiddenList, used);
+                else s4Val = getRandom(allTowers, used);
             } else {
                 s4Val = getRandom(allTowers, used);
             }
             document.getElementById('s4').textContent = s4Val;
             used.add(s4Val);
 
-            // Slot 5: Single DPS Logic
+            // Slot 5: Meta
             let s5Val;
-            if (isForceMode && !singleDpsList.includes(s3Val)) {
-                s5Val = getRandom(singleDpsList, used);
+            const currentCC = hasCC(s3Val) || hasCC(s4Val);
+            const currentDPS = hasDPS(s3Val) || hasDPS(s4Val);
+            const currentHidden = hasHidden(s3Val) || hasHidden(s4Val);
+
+            if (isForceMode) {
+                if (!currentCC) s5Val = getRandom(ccList, used);
+                else if (!currentDPS) s5Val = getRandom(singleDpsList, used);
+                else if (!currentHidden) s5Val = getRandom(hiddenList, used);
+                else s5Val = getRandom(allTowers, used);
             } else {
-                s5Val = getRandom(allTowers, used);
+                if (!currentHidden) s5Val = getRandom(hiddenList, used);
+                else s5Val = getRandom(allTowers, used);
             }
             document.getElementById('s5').textContent = s5Val;
         }
